@@ -27,8 +27,7 @@ def loadData():
 def MSE(W, b, x, y, reg):
     mse = 0
     for i in range(len(y)):
-        mse+=(1/(2*len(y)))*(W.flatten().dot(np.transpose(x[i].flatten()))+b-y[i])**2 + reg/2*np.linalg.norm(W)**2
-              
+        mse+=(1/(2*len(y)))*(W.dot(np.transpose(x[i].flatten()))+b-y[i])**2 + reg/2*np.linalg.norm(W)**2
     return mse
 
 def gradMSE(W, b, x, y, reg):
@@ -36,8 +35,8 @@ def gradMSE(W, b, x, y, reg):
     gradW=0
     gradB=0
     for i in range(len(y)):
-        gradW += (1/len(y))*((W.flatten().dot(x[i].flatten().transpose())+b-y[i])*x[i]) + reg*W
-        gradB += 1/len(y)*(W.flatten().dot(x[i].flatten().transpose())+b-y[i])
+        gradW += (1/len(y))*((W.dot(x[i].flatten().transpose())+b-y[i])*x[i].flatten().transpose()) + reg*W
+        gradB += 1/len(y)*(W.dot(x[i].flatten().transpose())+b-y[i])
     #calculate gradient with respect to regularization-tor
     return gradW, gradB
     
@@ -65,12 +64,8 @@ def buildGraph(beta1=None, beta2=None, epsilon=None, lossType=None, learning_rat
 
 def main():
     trainData, validData, testData, trainTarget, validTarget, testTarget = loadData()
-    W = np.ones(shape=(28,28))
+    W = np.ones(shape=(784))
     b = 0
     W, b = grad_descent(W,b,trainData, trainTarget, 0.001, 5000, 0, 10**(-7))
-    print(W)
-    print(b)
-    a = np.matrix([[1,2],[3,4]])
-    
 if __name__ == "__main__":
     main()
