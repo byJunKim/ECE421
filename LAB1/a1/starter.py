@@ -48,8 +48,9 @@ def gradCE(W, b, x, y, reg):
 
 # While the error is above threshold, keep updating weight matrix
 def grad_descent(W, b, trainingData, trainingLabels, alpha, iterations, reg, EPS):
-    
+    errorList = []
     error = MSE(W,b,trainingData,trainingLabels,reg)
+    errorList.append(error)
     while( error > EPS):
         # idk if this syntax is right gotta go check later
         print(error)
@@ -57,15 +58,27 @@ def grad_descent(W, b, trainingData, trainingLabels, alpha, iterations, reg, EPS
         W = np.subtract(W,alpha*gradW)
         b = b - alpha*gradB
         error = MSE(W,b,trainingData,trainingLabels,reg)
-    return W,b
+        errorList.append(error)
+        
+    return errorList
 
 def buildGraph(beta1=None, beta2=None, epsilon=None, lossType=None, learning_rate=None):
     pass
+
+def plotLab1(errorsList):
+    plt.plot(errorsList)
+    plt.ylabel("Error/Loss")
+    plt.xlabel("Epoch")
+    plt.title("Lab 1 Part 1: Plotting loss against epochs")
+    plt.savefig('lab1part1plot.png')
+    
 
 def main():
     trainData, validData, testData, trainTarget, validTarget, testTarget = loadData()
     W = np.ones(shape=(784))
     b = 0
-    W, b = grad_descent(W,b,trainData, trainTarget, 0.001, 5000, 0, 10**(-7))
+    errorList = grad_descent(W,b,trainData, trainTarget, 0.001, 5000, 0, 10**(-7)) #10**(-7)
+    plotLab1(errorList)
+    
 if __name__ == "__main__":
     main()
