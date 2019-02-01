@@ -51,15 +51,16 @@ def grad_descent(W, b, trainingData, trainingLabels, alpha, iterations, reg, EPS
     errorList = []
     error = MSE(W,b,trainingData,trainingLabels,reg)
     errorList.append(error)
-    while( error > EPS):
+    it = 1
+    while( error > EPS and it < iterations):
         # idk if this syntax is right gotta go check later
-        print(error)
+        print(it, ":", error)
         gradW, gradB = gradMSE(W,b,trainingData,trainingLabels,reg)
         W = np.subtract(W,alpha*gradW)
         b = b - alpha*gradB
         error = MSE(W,b,trainingData,trainingLabels,reg)
         errorList.append(error)
-        
+        it = it +1
     return errorList
 
 def buildGraph(beta1=None, beta2=None, epsilon=None, lossType=None, learning_rate=None):
