@@ -50,32 +50,45 @@ def gradMSE(W, b, x, y, reg):
     return gradW, gradB
 
 def sigmoid(x,W,b):
-    return(1/(1+np.exp(-((W.transpose() @ x.transpose()) + b))))
+    #print(np.shape(W),np.shape(x))
+    return(1/(1+np.exp(-(W.transpose() @ x.transpose() + b))))
 
 def safelog(x, minval=0.0000000001):
     return np.log(x.clip(min=minval))
             
 def crossEntropyLoss(W, b, x, y, reg):
     
-    x= np.reshape(x,(x.shape[0],-1))
-    W.reshape((-1,1))
+# =============================================================================
+#     x= np.reshape(x,(x.shape[0],-1))
+#     W.reshape((-1,1))
+# =============================================================================
     #print(np.shape(x), np.shape(W), np.shape(y))
-    #print(np.shape(sigmoidRes))
-    #print(sigmoidRes)
-    loss = np.sum((1/len(y)) * (-y.transpose() @ safelog(sigmoid(x,W,b)) - (1-y.transpose()) @ safelog(1-sigmoid(x,W,b))))
+    loss = np.sum((1/len(y)) * (-y * safelog(sigmoid(x,W,b)) - (1-y) * safelog(1-sigmoid(x,W,b))))
     loss+= (reg/2)*np.linalg.norm(W)**2
-    print("Loss is: ",loss)
+    #print("Loss is: ",loss)
 
 def gradCE(W, b, x, y, reg):
-    pass
+
+# =============================================================================
+     sigZ = sigmoid(x,W,b)
+     sigZ = sigZ.clip(min=np.finfo(np.float).eps,max = 1 - np.finfo(np.float).eps)
+     #print("sigfunc shape is:" ,np.shape(sigZ))
+     gradB = (1/len(y))*(sigZ**2)*np.exp(-(W.transpose() @ x.transpose() + b))
+     gradB *= (-y.transpose() / sigZ) + (1-y.transpose())/(1-sigZ)
+     #print(np.shape(gradB))
+     gradW = gradB @ x.transpose()
+     #print("Shape of gradW is: ", np.shape(gradW), "shape of W is: ", np.shape(W))
+     gradB = np.sum(gradB)
+     gradW += reg*W
+     return gradW, gradB
+# =============================================================================
 
 def calcAcc(W,x,y,b):
     return np.sum(((((W.transpose() @ x.transpose()) + b).transpose() > 0.5).astype(int) ==y).astype(int)) / x.shape[0]
 # While the error is above threshold, keep updating weight matrix
-def grad_descent(W, b, trainingData, trainingLabels, alpha, iterations, reg, EPS):
-    print (np.shape(trainingData))
-    print(np.shape(W))
-    
+def grad_descent(W, b, trainingData, trainingLabels, alpha, iterations, reg, EPS, lossType):
+    #print (np.shape(trainingData))
+    #print(np.shape(W))
 # =============================================================================
 #     Flatten the matrices
 # =============================================================================
@@ -89,37 +102,65 @@ def grad_descent(W, b, trainingData, trainingLabels, alpha, iterations, reg, EPS
     accuracyList = []
     wDiff = 100
 # =============================================================================
-#     Initial calculations and storage
+#     LINEAR REGRESSION
 # =============================================================================
-    
-    accuracy = calcAcc(W,x,trainingLabels,b)
-    print(accuracy)
-    error = MSE(W,b,x,trainingLabels,reg)
-    errorList.append(error)
-    accuracyList.append(accuracy)
-# =============================================================================
-#     Gradient Descent
-# =============================================================================
-    for i in range(iterations):
-        if wDiff < EPS:
-            break
-        
-        gradW, gradB = gradMSE(W,b,x,trainingLabels,reg)
-        W_new = np.subtract(W,alpha*gradW)
-        wDiff = np.linalg.norm(W_new-W)
- #       print(np.shape(W_new),np.shape(W))
-        W = W_new
-        b = b - alpha*gradB
-   
-# =============================================================================
-#     Update lists
-# =============================================================================
-        error= MSE(W,b,x,trainingLabels,reg)
-        errorList.append(error)
+    if lossType is "LIN":
         accuracy = calcAcc(W,x,trainingLabels,b)
+        print(accuracy)
+        error = MSE(W,b,x,trainingLabels,reg)
+        errorList.append(error)
+        accuracyList.append(accuracy)
+    # =========================================================================
+    #     Gradient Descent
+    # =========================================================================
+        for i in range(iterations):
+            if wDiff < EPS:
+                break
+            
+            gradW, gradB = gradMSE(W,b,x,trainingLabels,reg)
+            W_new = np.subtract(W,alpha*gradW)
+            wDiff = np.linalg.norm(W_new-W)
+     #       print(np.shape(W_new),np.shape(W))
+            W = W_new
+            b = b - alpha*gradB
+       
+    # =========================================================================
+    #     Update lists
+    # =========================================================================
+            error= MSE(W,b,x,trainingLabels,reg)
+            errorList.append(error)
+            accuracy = calcAcc(W,x,trainingLabels,b)
+            accuracyList.append(accuracy)
+            
+            print("Epoch: " ,i, " Error: ", error, " Accuracy: ",accuracy)
+            
+# =============================================================================
+# LOGISTIC REGRESSION
+# =============================================================================
+    elif lossType is "LOG":
+        
+        error = crossEntropyLoss(W,b,x,trainingLabels,reg)
+        accuracy = calcAcc(W,x,trainingLabels,b)
+        errorList.append(error)
         accuracyList.append(accuracy)
         
-        print("Epoch: " ,i, " Error: ", error, " Accuracy: ",accuracy)
+        # Gradient Descent Cross Entropy
+        for i in range(iterations):
+            if wDiff < EPS:
+                break
+            gradW, gradB = gradCE(W,b,x,trainingLabels,reg)
+            W_new = W - alpha*gradW
+            wDiff = np.linalg.norm(W-W_new)
+            W = W_new
+            b = b - alpha*gradB
+            
+            error = MSE(W,b,x,trainingLabels,reg)
+            errorList.append(error)
+            accuracy = calcAcc(W,x,trainingLabels,b)
+            accuracyList.append(accuracy)
+        
+            print("Epoch: " ,i, " Error: ", error, " Accuracy: ",accuracy)
+            
     return W,b,errorList,accuracyList
 
 def buildGraph(beta1=None, beta2=None, epsilon=None, lossType=None, learning_rate=None):
@@ -165,8 +206,8 @@ def test_closed_form(X,Y):
 def main():
     trainData, validData, testData, trainTarget, validTarget, testTarget = loadData()
     W = np.ones(shape=(784))
-    b = 10
-    crossEntropyLoss(W, b, trainData, trainTarget, 0)
+    b = 0
+    grad_descent(W, b, trainData, trainTarget, 0.005, 5000, 0, 10**-7, "LOG")
     
  #This section finds the closed form solution and computes its error & accuracy   
 # =============================================================================
