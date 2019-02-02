@@ -50,18 +50,19 @@ def gradMSE(W, b, x, y, reg):
     return gradW, gradB
 
 def sigmoid(x,W,b):
-    print((1+np.exp(-((W.transpose() @ x.transpose()) + b))))
     return(1/(1+np.exp(-((W.transpose() @ x.transpose()) + b))))
-    
+
+def safelog(x, minval=0.0000000001):
+    return np.log(x.clip(min=minval))
+            
 def crossEntropyLoss(W, b, x, y, reg):
     
     x= np.reshape(x,(x.shape[0],-1))
     W.reshape((-1,1))
-    print(np.shape(x), np.shape(W), np.shape(y))
-    sigmoidRes = sigmoid(x,W,b)
-    print(np.shape(sigmoidRes))
-    print(sigmoidRes)
-    loss = np.sum((1/len(y)) * (-y.transpose() @ np.log(sigmoid(x,W,b)) - (1-y.transpose()) @ np.log(1-sigmoid(x,W,b))))
+    #print(np.shape(x), np.shape(W), np.shape(y))
+    #print(np.shape(sigmoidRes))
+    #print(sigmoidRes)
+    loss = np.sum((1/len(y)) * (-y.transpose() @ safelog(sigmoid(x,W,b)) - (1-y.transpose()) @ safelog(1-sigmoid(x,W,b))))
     loss+= (reg/2)*np.linalg.norm(W)**2
     print("Loss is: ",loss)
 
@@ -169,7 +170,7 @@ def main():
     
  #This section finds the closed form solution and computes its error & accuracy   
 # =============================================================================
-    test_closed_form(trainData,trainTarget)
+    #test_closed_form(trainData,trainTarget)
 # =============================================================================
     
     
