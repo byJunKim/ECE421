@@ -1,7 +1,6 @@
 import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
-from script import calcClosedFormSolution
 
 def loadData():
     with np.load('notMNIST.npz') as data :
@@ -25,6 +24,7 @@ def loadData():
 
 
 def MSE(W, b, x, y, reg):
+    mse = 0
 # =============================================================================
 #   Checking the dimensions of the matrices
 #     print(np.shape(x))
@@ -48,28 +48,15 @@ def gradMSE(W, b, x, y, reg):
     gradB = np.sum(gradB)
     
     return gradW, gradB
-
-def sigmoid(x,W,b):
-    print((1+np.exp(-((W.transpose() @ x.transpose()) + b))))
-    return(1/(1+np.exp(-((W.transpose() @ x.transpose()) + b))))
     
 def crossEntropyLoss(W, b, x, y, reg):
-    
-    x= np.reshape(x,(x.shape[0],-1))
-    W.reshape((-1,1))
-    print(np.shape(x), np.shape(W), np.shape(y))
-    sigmoidRes = sigmoid(x,W,b)
-    print(np.shape(sigmoidRes))
-    print(sigmoidRes)
-    loss = np.sum((1/len(y)) * (-y.transpose() @ np.log(sigmoid(x,W,b)) - (1-y.transpose()) @ np.log(1-sigmoid(x,W,b))))
-    loss+= (reg/2)*np.linalg.norm(W)**2
-    print("Loss is: ",loss)
+    pass
 
 def gradCE(W, b, x, y, reg):
     pass
 
 def calcAcc(W,x,y,b):
-    return np.sum(((((W.transpose() @ x.transpose()) + b).transpose() > 0.5).astype(int) ==y).astype(int)) / x.shape[0]
+    return ((((W.transpose() @ x.transpose()) + b).transpose() > 0.5).astype(int) == y).astype(int).sum() / y.shape[0]
 # While the error is above threshold, keep updating weight matrix
 def grad_descent(W, b, trainingData, trainingLabels, alpha, iterations, reg, EPS):
     print (np.shape(trainingData))
@@ -125,53 +112,27 @@ def buildGraph(beta1=None, beta2=None, epsilon=None, lossType=None, learning_rat
     pass
 
 def plotLab1(errorsList,accuracyList,learningRate):
+    plt.plot(errorsList)
     plt.ylabel("Error/Loss")
     plt.xlabel("Epoch")
     plt.title(f"Lab 1 Part 1: Loss w/ LR {learningRate}")
     plt.savefig(f'lab1part1LOSSplotLR{learningRate}.png')
     
-    plt.plot(accuracyList)
+    plt.plot(errorsList)
     plt.ylabel("Accuracy of predictions")
     plt.xlabel("Epoch")
     plt.title(f"Lab 1 Part 1: Accuracy w/ LR {learningRate}")
     plt.savefig(f'lab1part1ACCURACYplotLR{learningRate}.png')
     
-def plotLab1REG(errorsList,accuracyList,reg):
-    plt.plot(errorsList)
-    plt.ylabel("Error/Loss")
-    plt.xlabel("Epoch")
-    plt.title(f"Lab 1 Part 1: Loss w/ REG {reg}")
-    plt.savefig(f'lab1part1LOSSplotREG{reg}.png')
-    
-    plt.plot(accuracyList)
-    plt.ylabel("Accuracy of predictions")
-    plt.xlabel("Epoch")
-    plt.title(f"Lab 1 Part 1: Accuracy w/ REG {reg}")
-    plt.savefig(f'lab1part1ACCURACYplotREG{reg}.png')
 
-def test_closed_form(X,Y):
-    
-    W_l = calcClosedFormSolution(X, Y)
-    
-    N = X.shape[0]
-    X = np.reshape(X, (N, -1))
-    W_l = np.reshape(W_l, (-1, 1))
-
-    error = MSE(W_l, 0, X, Y, 0)
-    accuracy = calcAcc(W_l,X,Y,0)
-    print("W_l Error: ", error, "| W_l accuracy: ", accuracy)
-    
 def main():
     trainData, validData, testData, trainTarget, validTarget, testTarget = loadData()
     W = np.ones(shape=(784))
-    b = 10
-    crossEntropyLoss(W, b, trainData, trainTarget, 0)
-    
- #This section finds the closed form solution and computes its error & accuracy   
-# =============================================================================
-    test_closed_form(trainData,trainTarget)
-# =============================================================================
-    
+    b = 0
+    LR = [0.0001, 0.001, 0.005]
+    for lr in LR:
+        W,b,errorList,accuracyList = grad_descent(W,b,trainData, trainTarget, lr, 5000, 0, 10**(-7)) #10**(-7)
+        plotLab1(errorList,accuracyList,lr)
     
 if __name__ == "__main__":
     main()
