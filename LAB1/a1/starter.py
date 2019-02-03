@@ -66,6 +66,7 @@ def crossEntropyLoss(W, b, x, y, reg):
     loss = np.sum((1/len(y)) * (-y * safelog(sigmoidZ(x,W,b)) - (1-y) * safelog(1-sigmoidZ(x,W,b))))
     loss+= (reg/2)*np.linalg.norm(W)**2
     #print("Loss is: ",loss)
+    return loss
 
 def gradCE(W, b, x, y, reg):
 
@@ -207,7 +208,11 @@ def main():
     trainData, validData, testData, trainTarget, validTarget, testTarget = loadData()
     W = np.random.rand(784,1)
     b = 0
+    print("logistic regression")
     grad_descent(W, b, trainData, trainTarget, 0.005, 5000, 0, 10**-7, "LOG")
+    #W_2 = np.random.rand(784,1)
+    #b_2 = 0
+    #grad_descent(W_2, b_2, trainData, trainTarget, 0.005, 5000, 0, 10**-7, "LIN")
     
  #This section finds the closed form solution and computes its error & accuracy   
 # =============================================================================
