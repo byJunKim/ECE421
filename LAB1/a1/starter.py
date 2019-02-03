@@ -63,8 +63,10 @@ def crossEntropyLoss(W, b, x, y, reg):
 #     W.reshape((-1,1))
 # =============================================================================
     #print(np.shape(x), np.shape(W), np.shape(y))
-    loss = np.sum((1/len(y)) * (-y * safelog(sigmoidZ(x,W,b)) - (1-y) * safelog(1-sigmoidZ(x,W,b))))
-    loss+= (reg/2)*np.linalg.norm(W)**2
+    loss =((-1*y.transpose() * safelog(sigmoidZ(x,W,b))) - ((1-y.transpose()) * safelog(1-sigmoidZ(x,W,b))))
+    #print(np.shape(loss))
+    loss = np.sum(loss)*(1/len(y))
+    loss += (reg/2)*(np.linalg.norm(W)**2)
     #print("Loss is: ",loss)
     return loss
 
@@ -72,12 +74,13 @@ def gradCE(W, b, x, y, reg):
 
     # =============================================================================
     sigmoid = sigmoidZ(x,W,b).clip(min=np.finfo(np.float).eps,max = 1 - np.finfo(np.float).eps)
-    gradB = (1/len(y))*(sigmoid ** 2) *np.exp(-1 *((W.transpose() @ x.transpose()) + b)) *(((-1 * y.transpose()) /sigmoid) + ((1 - y.transpose())))
+    gradB = (1/len(y))*(sigmoid ** 2) *np.exp(-1 *((W.transpose() @ x.transpose()) + b))
+    gradB *= (((-1 * y.transpose()) /sigmoid)+((1-y.transpose())/(1-sigmoid)))
     gradW = gradB * x.transpose()
     gradB = np.sum(gradB)
     gradW = np.sum(gradW, axis=1)
     gradW = np.expand_dims(gradW, axis=1)
-    print("Shape of gradW is: ", np.shape(gradW), "shape of W is: ", np.shape(W))
+    #print("Shape of gradW is: ", np.shape(gradW), "shape of W is: ", np.shape(W))
     gradW += reg*W
     return gradW, gradB
 # =============================================================================
@@ -149,12 +152,12 @@ def grad_descent(W, b, trainingData, trainingLabels, alpha, iterations, reg, EPS
             if wDiff < EPS:
                 break
             gradW, gradB = gradCE(W,b,x,trainingLabels,reg)
-            W_new = W - alpha*gradW
+            W_new = np.subtract(W, alpha*gradW)
             wDiff = np.linalg.norm(W-W_new)
             W = W_new
             b = b - alpha*gradB
             
-            error = MSE(W,b,x,trainingLabels,reg)
+            error = crossEntropyLoss(W,b,x,trainingLabels,reg)
             errorList.append(error)
             accuracy = calcAcc(W,x,trainingLabels,b)
             accuracyList.append(accuracy)
@@ -167,30 +170,37 @@ def grad_descent(W, b, trainingData, trainingLabels, alpha, iterations, reg, EPS
 def buildGraph(beta1=None, beta2=None, epsilon=None, lossType=None, learning_rate=None):
     pass
 
-def plotLab1(errorsList,accuracyList,learningRate):
-    plt.ylabel("Error/Loss")
-    plt.xlabel("Epoch")
-    plt.title(f"Lab 1 Part 1: Loss w/ LR {learningRate}")
-    plt.savefig(f'lab1part1LOSSplotLR{learningRate}.png')
+def plotLab(errorsList,accuracyList,learningRate, lab_part):
     
-    plt.plot(accuracyList)
+    def plot_loss():
+        plt.figure(1)
+        plt.plot(errorsList)
+        plt.xlabel("Epoch")
+        plt.title(f"Lab 1 Part {lab_part}: Loss w/ LR {learningRate}")
+        plt.savefig(f'lab1part{lab_part}LOSSplotLR{learningRate}.png')
+    
+    def plot_acc():
+        plt.figure(2)
+        plt.plot(accuracyList)
+        plt.ylabel("Accuracy of predictions")
+        plt.xlabel("Epoch")
+        plt.title(f"Lab 1 Part {lab_part}: Accuracy w/ LR {learningRate}")
+        plt.savefig(f'lab1part{lab_part}ACCURACYplotLR{learningRate}.png')
+        
+    plot_loss()
+    plot_acc()
+    
+def plotLab1REG(errorsList,accuracyList,reg, lab_part):
+    plt.subplots(errorsList)
+    plt.xlabel("Epoch")
+    plt.title(f"Lab 1 Part {lab_part}: Loss w/ REG {reg}")
+    plt.savefig(f'lab1part{lab_part}LOSSplotREG{reg}.png')
+    
+    plt.subplots(accuracyList)
     plt.ylabel("Accuracy of predictions")
     plt.xlabel("Epoch")
-    plt.title(f"Lab 1 Part 1: Accuracy w/ LR {learningRate}")
-    plt.savefig(f'lab1part1ACCURACYplotLR{learningRate}.png')
-    
-def plotLab1REG(errorsList,accuracyList,reg):
-    plt.plot(errorsList)
-    plt.ylabel("Error/Loss")
-    plt.xlabel("Epoch")
-    plt.title(f"Lab 1 Part 1: Loss w/ REG {reg}")
-    plt.savefig(f'lab1part1LOSSplotREG{reg}.png')
-    
-    plt.plot(accuracyList)
-    plt.ylabel("Accuracy of predictions")
-    plt.xlabel("Epoch")
-    plt.title(f"Lab 1 Part 1: Accuracy w/ REG {reg}")
-    plt.savefig(f'lab1part1ACCURACYplotREG{reg}.png')
+    plt.title(f"Lab 1 Part {lab_part}: Accuracy w/ REG {reg}")
+    plt.savefig(f'lab1part{lab_part}ACCURACYplotREG{reg}.png')
 
 def test_closed_form(X,Y):
     
@@ -206,13 +216,15 @@ def test_closed_form(X,Y):
     
 def main():
     trainData, validData, testData, trainTarget, validTarget, testTarget = loadData()
-    W = np.random.rand(784,1)
+    W = W = np.random.rand(784,1)
+    W_2 = W
     b = 0
     print("logistic regression")
-    grad_descent(W, b, trainData, trainTarget, 0.005, 5000, 0, 10**-7, "LOG")
-    #W_2 = np.random.rand(784,1)
-    #b_2 = 0
-    #grad_descent(W_2, b_2, trainData, trainTarget, 0.005, 5000, 0, 10**-7, "LIN")
+    W,b, errors, accuracies = grad_descent(W, b, trainData, trainTarget, 0.005, 5000, 0.1, 10**-7, "LOG")
+    plotLab(errors,accuracies,0.005,"2: LIN VS LOG")
+    b_2 = 0
+    W_2,b_2, errors, accuracies = grad_descent(W_2, b_2, trainData, trainTarget, 0.005, 5000, 0, 10**-7, "LIN")
+    plotLab(errors,accuracies,0.005,'2: LOG LIN VS LOG')
     
  #This section finds the closed form solution and computes its error & accuracy   
 # =============================================================================
