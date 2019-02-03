@@ -49,11 +49,11 @@ def gradMSE(W, b, x, y, reg):
     
     return gradW, gradB
 
-def sigmoid(x,W,b):
+def sigmoidZ(x,W,b):
     #print(np.shape(W),np.shape(x))
     return(1/(1+np.exp(-(W.transpose() @ x.transpose() + b))))
 
-def safelog(x, minval=0.0000000001):
+def safelog(x, minval=np.finfo(np.float).eps):
     return np.log(x.clip(min=minval))
             
 def crossEntropyLoss(W, b, x, y, reg):
@@ -63,25 +63,24 @@ def crossEntropyLoss(W, b, x, y, reg):
 #     W.reshape((-1,1))
 # =============================================================================
     #print(np.shape(x), np.shape(W), np.shape(y))
-    loss = np.sum((1/len(y)) * (-y * safelog(sigmoid(x,W,b)) - (1-y) * safelog(1-sigmoid(x,W,b))))
+    loss = np.sum((1/len(y)) * (-y * safelog(sigmoidZ(x,W,b)) - (1-y) * safelog(1-sigmoidZ(x,W,b))))
     loss+= (reg/2)*np.linalg.norm(W)**2
     #print("Loss is: ",loss)
 
 def gradCE(W, b, x, y, reg):
 
+    # =============================================================================
+    sigmoid = sigmoidZ(x,W,b).clip(min=np.finfo(np.float).eps,max = 1 - np.finfo(np.float).eps)
+    gradB = (1/len(y))*(sigmoid ** 2) *np.exp(-1 *((W.transpose() @ x.transpose()) + b)) *(((-1 * y.transpose()) /sigmoid) + ((1 - y.transpose())))
+    gradW = gradB * x.transpose()
+    gradB = np.sum(gradB)
+    gradW = np.sum(gradW, axis=1)
+    gradW = np.expand_dims(gradW, axis=1)
+    print("Shape of gradW is: ", np.shape(gradW), "shape of W is: ", np.shape(W))
+    gradW += reg*W
+    return gradW, gradB
 # =============================================================================
-     sigZ = sigmoid(x,W,b)
-     sigZ = sigZ.clip(min=np.finfo(np.float).eps,max = 1 - np.finfo(np.float).eps)
-     #print("sigfunc shape is:" ,np.shape(sigZ))
-     gradB = (1/len(y))*(sigZ**2)*np.exp(-(W.transpose() @ x.transpose() + b))
-     gradB *= (-y.transpose() / sigZ) + (1-y.transpose())/(1-sigZ)
-     #print(np.shape(gradB))
-     gradW = gradB @ x.transpose()
-     #print("Shape of gradW is: ", np.shape(gradW), "shape of W is: ", np.shape(W))
-     gradB = np.sum(gradB)
-     gradW += reg*W
-     return gradW, gradB
-# =============================================================================
+
 
 def calcAcc(W,x,y,b):
     return np.sum(((((W.transpose() @ x.transpose()) + b).transpose() > 0.5).astype(int) ==y).astype(int)) / x.shape[0]
@@ -161,6 +160,7 @@ def grad_descent(W, b, trainingData, trainingLabels, alpha, iterations, reg, EPS
         
             print("Epoch: " ,i, " Error: ", error, " Accuracy: ",accuracy)
             
+            
     return W,b,errorList,accuracyList
 
 def buildGraph(beta1=None, beta2=None, epsilon=None, lossType=None, learning_rate=None):
@@ -205,7 +205,7 @@ def test_closed_form(X,Y):
     
 def main():
     trainData, validData, testData, trainTarget, validTarget, testTarget = loadData()
-    W = np.ones(shape=(784))
+    W = np.random.rand(784,1)
     b = 0
     grad_descent(W, b, trainData, trainTarget, 0.005, 5000, 0, 10**-7, "LOG")
     
