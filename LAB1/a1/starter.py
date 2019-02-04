@@ -170,22 +170,25 @@ def grad_descent(W, b, trainingData, trainingLabels, alpha, iterations, reg, EPS
 def buildGraph(beta1=None, beta2=None, epsilon=None, lossType=None, learning_rate=None):
     pass
 
-def plotLab(errorsList,accuracyList,learningRate, lab_part):
+def plotLab(errorsList,accuracyList,learningRate, lab_part, _label):
     
     def plot_loss():
         plt.figure(1)
-        plt.plot(errorsList)
+        line = plt.plot(errorsList,label = _label)
         plt.xlabel("Epoch")
         plt.title(f"Lab 1 Part {lab_part}: Loss w/ LR {learningRate}")
         plt.savefig(f'lab1part{lab_part}LOSSplotLR{learningRate}.png')
+        plt.legend()
+        
     
     def plot_acc():
         plt.figure(2)
-        plt.plot(accuracyList)
+        line = plt.plot(accuracyList, label = _label)
         plt.ylabel("Accuracy of predictions")
         plt.xlabel("Epoch")
         plt.title(f"Lab 1 Part {lab_part}: Accuracy w/ LR {learningRate}")
         plt.savefig(f'lab1part{lab_part}ACCURACYplotLR{learningRate}.png')
+        plt.legend()
         
     plot_loss()
     plot_acc()
@@ -201,6 +204,7 @@ def plotLab1REG(errorsList,accuracyList,reg, lab_part):
     plt.xlabel("Epoch")
     plt.title(f"Lab 1 Part {lab_part}: Accuracy w/ REG {reg}")
     plt.savefig(f'lab1part{lab_part}ACCURACYplotREG{reg}.png')
+    plt.legend()
 
 def test_closed_form(X,Y):
     
@@ -219,12 +223,12 @@ def main():
     W = W = np.random.rand(784,1)
     W_2 = W
     b = 0
-    print("logistic regression")
+
     W,b, errors, accuracies = grad_descent(W, b, trainData, trainTarget, 0.005, 5000, 0.1, 10**-7, "LOG")
-    plotLab(errors,accuracies,0.005,"2: LIN VS LOG")
+    plotLab(errors,accuracies,0.005,"2: LIN VS LOG", " logistic regression")
     b_2 = 0
     W_2,b_2, errors, accuracies = grad_descent(W_2, b_2, trainData, trainTarget, 0.005, 5000, 0, 10**-7, "LIN")
-    plotLab(errors,accuracies,0.005,'2: LOG LIN VS LOG')
+    plotLab(errors,accuracies,0.005,'2: LIN VS LOG', " linear regression")
     
  #This section finds the closed form solution and computes its error & accuracy   
 # =============================================================================
