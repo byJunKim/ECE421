@@ -52,7 +52,7 @@ def gradMSE(W, b, x, y, reg):
 
 def sigmoidZ(x,W,b):
     #print(np.shape(W),np.shape(x))
-    return(1/(1+np.exp(-(W.transpose() @ x.transpose() + b))))
+    return(1/(1+np.exp(-(x@W + b))))
 
 def safelog(x, minval=np.finfo(np.float).eps):
     return np.log(x.clip(min=minval))
@@ -64,7 +64,7 @@ def crossEntropyLoss(W, b, x, y, reg):
 #     W.reshape((-1,1))
 # =============================================================================
     #print(np.shape(x), np.shape(W), np.shape(y))
-    loss =(((-1)*y.transpose() * safelog(sigmoidZ(x,W,b))) - ((1-y.transpose()) * safelog(1-sigmoidZ(x,W,b))))
+    loss =(((-1)*y * safelog(sigmoidZ(x,W,b))) - ((1-y) * safelog(1-sigmoidZ(x,W,b))))
     #print(np.shape(loss))
     loss = np.sum(loss)*(1/len(y))
     loss += (reg/2)*(np.linalg.norm(W)**2)
@@ -74,13 +74,11 @@ def crossEntropyLoss(W, b, x, y, reg):
 def gradCE(W, b, x, y, reg):
 
     # =============================================================================
-    sigmoid = sigmoidZ(x,W,b).clip(min=np.finfo(np.float).eps,max = 1 - np.finfo(np.float).eps)
-    gradB = (1/len(y))*(sigmoid ** 2) *np.exp(-1 *((W.transpose() @ x.transpose()) + b))
-    gradB *= (((-1 * y.transpose()) /sigmoid)+((1-y.transpose())/(1-sigmoid)))
-    gradW = gradB * x.transpose()
+    sigmoid = sigmoidZ(x,W,b).clip(max = 1 - np.finfo(np.float).eps)
+    gradB = (1/len(y))*(sigmoid ** 2) *np.exp(-1 *((x@W) + b))
+    gradB *= (((-1 * y) /sigmoid)+((1-y)/(1-sigmoid)))
+    gradW = x.transpose() @ gradB
     gradB = np.sum(gradB)
-    gradW = np.sum(gradW, axis=1)
-    gradW = np.expand_dims(gradW, axis=1)
     #print("Shape of gradW is: ", np.shape(gradW), "shape of W is: ", np.shape(W))
     gradW += reg*W
     return gradW, gradB
@@ -259,7 +257,7 @@ def main():
         return np.sum(((((W.transpose() @ x.transpose()) + b).transpose() > 0.5).astype(int) ==y).astype(int)) / x.shape[0]
     
     
-    W,b, errors, accuracies, valErr, testErr = grad_descent(W, b, trainData, trainTarget, validData, validTarget, testData, testTarget, 0.005, 5000, 0.1, 10**-7, "LOG")
+    W,b, errors, accuracies, valErr, testErr = grad_descent(W, b, trainData, trainTarget, validData, validTarget, testData, testTarget, 0.005, 5000, 0, 10**-7, "LOG")
     plotLab(errors,accuracies,0.005,"2",True, True, "logistic regression", "LIN VS LOG")
     b_2 = 0
     W_2,b_2, errors, accuracies, valErr, testErr = grad_descent(W_2, b_2, trainData, trainTarget, validData, validTarget, testData, testTarget, 0.005, 5000, 0, 10**-7, "LIN")
