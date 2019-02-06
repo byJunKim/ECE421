@@ -162,6 +162,10 @@ def grad_descent(W, b, trainingData, trainingLabels, validData, validTarget, tes
         accuracy = calcAcc(W,x,trainingLabels,b)
         errorList.append(error)
         accuracyList.append(accuracy)
+        val_loss = crossEntropyLoss(W, b, validData, validTarget, reg)
+        valLossList.append(val_loss)
+        test_loss = crossEntropyLoss(W, b, testData, testTarget, reg)
+        testLossList.append(test_loss)
         
         # Gradient Descent Cross Entropy
         for i in range(iterations):
@@ -178,8 +182,12 @@ def grad_descent(W, b, trainingData, trainingLabels, validData, validTarget, tes
             errorList.append(error)
             accuracy = calcAcc(W,x,trainingLabels,b)
             accuracyList.append(accuracy)
+            val_loss = crossEntropyLoss(W, b, validData, validTarget, reg)
+            valLossList.append(val_loss)
+            test_loss = crossEntropyLoss(W, b, testData, testTarget, reg)
+            testLossList.append(test_loss)
 
-            print("Epoch: " ,i, " Error: ", error, " Accuracy: ",accuracy)
+            print("Epoch: " ,i, "Test Error: ", error, " Validation Loss: ", val_loss, " Test Loss: ", test_loss, " Accuracy: ",accuracy)
                   
     return W,b,errorList,accuracyList,valLossList,testLossList
 
@@ -193,7 +201,7 @@ def plotLab(errorsList,accuracyList,learningRate, lab_part, plotAcc,plotLoss, _l
         plt.figure(1)
         plt.plot(errorsList, label = _label)
         plt.xlabel("Epoch")
-        plt.ylim((0,3))
+        plt.ylim((0,30))
         plt.title(f"Lab 1 Part {lab_part}: Loss w/ {hyperparam} {learningRate}")
         plt.savefig(f'lab1part{lab_part}LOSSplot{hyperparam}{learningRate}.png')
         plt.legend()
@@ -206,7 +214,6 @@ def plotLab(errorsList,accuracyList,learningRate, lab_part, plotAcc,plotLoss, _l
         plt.xlabel("Epoch")
         plt.title(f"Lab 1 Part {lab_part}: Accuracy w/ {hyperparam} {learningRate}")
         plt.savefig(f'lab1part{lab_part}ACCURACYplot{hyperparam}{learningRate}.png')
-        plt.legend()
         
     if (plotLoss):    
         plot_loss()
@@ -256,22 +263,22 @@ def main():
         x = np.reshape(x,(x.shape[0],-1))
         return np.sum(((((W.transpose() @ x.transpose()) + b).transpose() > 0.5).astype(int) ==y).astype(int)) / x.shape[0]
     
-    #W,b, errors, accuracies, valErr, testErr = grad_descent(W, b, trainData, trainTarget, validData, validTarget, testData, testTarget, 0.005, 5000, 0.1, 10**-7, "LOG")
-    #plotLab(errors,accuracies,0.1,"2",True, True, "logistic regression", "Reg")
-    #W,b, errors, accuracies, valErr, testErr = grad_descent(W, b, trainData, trainTarget, validData, validTarget, testData, testTarget, 0.005, 5000, 0, 10**-7, "LOG")
-    #plotLab(errors,accuracies,0,"2",True, True, "logistic regression", "LIN VS LOG w Reg")
+    W,b, errors, accuracies, valErr, testErr = grad_descent(W, b, trainData, trainTarget, validData, validTarget, testData, testTarget, 0.005, 5000, 0, 10**-7, "LOG")
+    plotLab(errors,accuracies,0.1,"2",False, True, "logistic regression", "Reg")
     b_2 = 0
     W_2,b_2, errors, accuracies, valErr, testErr = grad_descent(W_2, b_2, trainData, trainTarget, validData, validTarget, testData, testTarget, 0.005, 5000, 0, 10**-7, "LIN")
-    #plotLab(errors,accuracies,0,'2', True, True,  "linear regression", "LIN VS LOG w Reg")
+    plotLab(errors,accuracies,0,'2', False, True,  "linear regression", "LIN VS LOG w Reg")
     
-    # Tuning Learning Rate
+    # Tuning REG
 # =============================================================================
-#     LRs = [0.0001,0.001,0.005]
-#     for LR in LRs:
-#         W=np.random.rand(784,1)
-#         b = 0      
-#         W,b, errors, accuracies, valLosses, testLosses = grad_descent(W, b, trainData, trainTarget, validData, validTarget, testData, testTarget, LR, 5000, 0, 10**-7, "LIN")
-#         print(f"For LR = {LR} accuracy is:" ,accuracies[len(accuracies)-1])
+    #reg = 0.1
+  
+    #W,b, errors, accuracies, valLosses, testLosses = grad_descent(W, b, trainData, trainTarget, validData, validTarget, testData, testTarget, 0.005, 5000, reg, 10**-7, "LOG")
+    #plotLab(errors,accuracies,reg, "2", True,True,"training error" , "Regularization")
+    #plotLab(valLosses,accuracies,reg, "2", True,True,"validation error" , "Regularization")
+    #plotLab(testLosses,accuracies,reg, "2", True,True,"test error" , "Regularization")
+         
+         #print(f"For LR = {LR} accuracy is:" ,accuracies[len(accuracies)-1])
 #         
 # =============================================================================
 # =============================================================================
