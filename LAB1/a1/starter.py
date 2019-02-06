@@ -32,7 +32,7 @@ def MSE(W, b, x, y, reg):
 #     print(np.shape(W))
 #   Note: it's faster to multiple than divide by 5%
 # =============================================================================
-    mse = np.sum(((W.transpose() @ x.transpose())+b-y.transpose())**2)*(1/(2*len(y)))
+    mse = np.sum(((x@W)+b-y)**2)*(1/(2*len(y)))
     mse+= (reg/2)*(np.linalg.norm(W)**2)
     return mse
 
@@ -43,9 +43,9 @@ def gradMSE(W, b, x, y, reg):
 #     x is 3500x784 array
 # =============================================================================
     
-    gradB= (1/len(y))*((W.transpose() @ x.transpose()) + b - y.transpose())
+    gradB= (1/len(y))*((x@W) + b - y)
 #    print(np.shape(gradB)) # results above
-    gradW= (gradB @ x).transpose() + reg*W
+    gradW= (x.transpose() @ gradB) + reg*W
     gradB = np.sum(gradB)
     
     return gradW, gradB
@@ -75,8 +75,7 @@ def gradCE(W, b, x, y, reg):
 
     # =============================================================================
     sigmoid = sigmoidZ(x,W,b).clip(max = 1 - np.finfo(np.float).eps)
-    gradB = (1/len(y))*(sigmoid ** 2) *np.exp(-1 *(x@W + b))
-    gradB *= (((-1 * y) /sigmoid)+((1-y)/(1-sigmoid)))
+    gradB = (1/len(y))*sigmoid *((-1)*y*np.exp(-(x@W + b)) + 1-y)
     gradW = x.transpose() @ gradB
     gradB = np.sum(gradB)
     #print("Shape of gradW is: ", np.shape(gradW), "shape of W is: ", np.shape(W))
@@ -257,12 +256,13 @@ def main():
         x = np.reshape(x,(x.shape[0],-1))
         return np.sum(((((W.transpose() @ x.transpose()) + b).transpose() > 0.5).astype(int) ==y).astype(int)) / x.shape[0]
     
-    
-    W,b, errors, accuracies, valErr, testErr = grad_descent(W, b, trainData, trainTarget, validData, validTarget, testData, testTarget, 0.005, 5000, 0.1, 10**-7, "LOG")
-    plotLab(errors,accuracies,0.005,"2",True, True, "logistic regression", "LIN VS LOG")
+    #W,b, errors, accuracies, valErr, testErr = grad_descent(W, b, trainData, trainTarget, validData, validTarget, testData, testTarget, 0.005, 5000, 0.1, 10**-7, "LOG")
+    #plotLab(errors,accuracies,0.1,"2",True, True, "logistic regression", "Reg")
+    #W,b, errors, accuracies, valErr, testErr = grad_descent(W, b, trainData, trainTarget, validData, validTarget, testData, testTarget, 0.005, 5000, 0, 10**-7, "LOG")
+    #plotLab(errors,accuracies,0,"2",True, True, "logistic regression", "LIN VS LOG w Reg")
     b_2 = 0
     W_2,b_2, errors, accuracies, valErr, testErr = grad_descent(W_2, b_2, trainData, trainTarget, validData, validTarget, testData, testTarget, 0.005, 5000, 0, 10**-7, "LIN")
-    plotLab(errors,accuracies,0.005,'2', True, True,  "linear regression", "LIN VS LOG")
+    #plotLab(errors,accuracies,0,'2', True, True,  "linear regression", "LIN VS LOG w Reg")
     
     # Tuning Learning Rate
 # =============================================================================
