@@ -47,8 +47,9 @@ def relu(x):
     return x.clip(min=0)
 
 def softmax(x):
-    # TODO
-    pass
+    exp = np.exp(x)
+    denom = np.sum(exp)
+    return(exp/denom)
 
 
 def computeLayer(X, W, b):
@@ -69,4 +70,5 @@ def gradCE(target, prediction):
     
 if __name__ == "__main__":
     trainData, validData, testData, trainTarget, validTarget, testTarget = loadData();
-    print(relu(x))
+    x = np.array([[1,2,3],[4,5,6]])
+    print(softmax(x))
