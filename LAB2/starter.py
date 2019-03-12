@@ -54,21 +54,49 @@ def softmax(x):
 
 def computeLayer(X, W, b):
     # TODO
-    pass
+    return(X @ W + b)
 
+#prediction = 10,000 x 10
+#target - 10,000x1
 def CE(target, prediction):
+    N = target.shape[0] #get number of rows
+    return np.sum((-1)*np.log(prediction) @ target)/N
 
-    # TODO
-    pass
 
 def gradCE(target, prediction):
+    N = target.shape[0]
+    return((-1)/N)*np.divide(target,softmax(prediction))
+    #return np.subtract(softmax(prediction),target)/N
 
-    # TODO
-    pass
-
-
+def init():
+    STD1 = (2/(784+1000)**0.5)
+    STD2 = (2/(1000+10)**0.5)
+    w1 = np.random.normal(0,STD1,(784,1000))
+    w2 = np.random.normal(0,STD2,(1000,10))
+    b2 = np.zeros((1,10))
+    b1 = np.full((1,1000),0.01) #init to small value for RELU
     
+    return w1,w2,b1,b2
+
+def forward(w1,w2,b1,b2,x):
+    # input layer
+    S = computeLayer(x,w1,b1) # result: 10,000 x 1000
+    #hidden layer
+    RL = relu(S)
+    #output layer
+    Z  = computeLayer(RL,w2,b2) # result: 10,000 x 10
+    return(softmax(Z))
+    
+def train(w1,w2,b1,b2,trainData,trainTarget):
+    res_prob = forward(w1,w2,b1,b2,trainData)
+    error = CE(res_prob, trainTarget)
+#data - 10000 x (784)
+#target - 10,000 x 1   
 if __name__ == "__main__":
     trainData, validData, testData, trainTarget, validTarget, testTarget = loadData();
-    x = np.array([[1,2,3],[4,5,6]])
-    print(softmax(x))
+    trainData = np.reshape(trainData, (trainData.shape[0], -1))
+    w1,w2,b1,b2 = init()
+    
+    train(w1,w2,b1,b2,trainData,trainTarget)
+    
+    
