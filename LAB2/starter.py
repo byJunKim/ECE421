@@ -86,12 +86,6 @@ def init(K):
     return w1,w2,b1,b2,v1,v2,v_b1,v_b2
     
 def delta_cross_entropy(X,y):
-    """
-    X is the output from fully connected layer (num_examples x num_classes)
-    y is labels (num_examples x 1)
-    	Note that y is not one-hot encoded vector. 
-    	It can be computed as y.argmax(axis=1) from one-hot encoded vectors of labels if required.
-    """
     m = y.shape[0]
     grad = softmax(X)
     grad[range(m),y] -= 1
@@ -102,8 +96,8 @@ def plotLab(errorListTrain,errorListValid,errorListTest, accuracyListTrain, accu
     
     def plot_loss():
         plt.figure(1)
-        #plt.plot(errorListTrain, label = "Training Loss")
-        #plt.plot(errorListValid, label = "Validation Loss")
+        plt.plot(errorListTrain, label = "Training Loss")
+        plt.plot(errorListValid, label = "Validation Loss")
         plt.plot(errorListTest, label = "Test Loss")
         plt.xlabel("Epoch")
         plt.ylabel("Error")
@@ -115,8 +109,8 @@ def plotLab(errorListTrain,errorListValid,errorListTest, accuracyListTrain, accu
     
     def plot_acc():
         plt.figure(2)
-        #plt.plot(accuracyListTrain, label = "Training Accuracy")
-        #plt.plot(accuracyListValid, label = "Validation Accuracy")
+        plt.plot(accuracyListTrain, label = "Training Accuracy")
+        plt.plot(accuracyListValid, label = "Validation Accuracy")
         plt.plot(accuracyListTest, label = "Test Accuracy")
         plt.ylabel("Accuracy")
         plt.xlabel("Epoch")
