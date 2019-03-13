@@ -71,16 +71,16 @@ def gradCE(target, prediction):
     N = target.shape[0]
     return((-1)/N)*np.divide(target,prediction)
 
-def init():
-    STD1 = ((2/(784+1000))**0.5)
-    STD2 = ((2/(1000+10))**0.5)
-    w1 = np.random.normal(0,STD1,(784,1000))
-    w2 = np.random.normal(0,STD2,(1000,10))
+def init(K):
+    STD1 = ((2/(784+K))**0.5)
+    STD2 = ((2/(K+10))**0.5)
+    w1 = np.random.normal(0,STD1,(784,K))
+    w2 = np.random.normal(0,STD2,(K,10))
     b2 = np.zeros((1,10))
-    b1 = np.full((1,1000),0.01) #init to small value for RELU
-    v1 = np.full((784,1000), np.exp(-5))
-    v2 = np.full((1000,10), np.exp(-5))
-    v_b1 = np.full((1,1000),np.exp(-5))
+    b1 = np.full((1,K),0.01) #init to small value for RELU
+    v1 = np.full((784,K), np.exp(-5))
+    v2 = np.full((K,10), np.exp(-5))
+    v_b1 = np.full((1,K),np.exp(-5))
     v_b2 = np.full((1,10),np.exp(-5))
     
     return w1,w2,b1,b2,v1,v2,v_b1,v_b2
@@ -98,12 +98,46 @@ def delta_cross_entropy(X,y):
     grad = grad/m
     return grad
 
+def plotLab(errorListTrain,errorListValid,errorListTest, accuracyListTrain, accuracyListValid,accuracyListTest, K):
+    
+    def plot_loss():
+        plt.figure(1)
+        #plt.plot(errorListTrain, label = "Training Loss")
+        #plt.plot(errorListValid, label = "Validation Loss")
+        plt.plot(errorListTest, label = "Test Loss")
+        plt.xlabel("Epoch")
+        plt.ylabel("Error")
+        plt.ylim((0,3))
+        plt.title(f"Loss with {K} Hidden Units ")
+        plt.savefig(f'Lab2Part1ErrorK{K}.png')
+        plt.legend()
+        
+    
+    def plot_acc():
+        plt.figure(2)
+        #plt.plot(accuracyListTrain, label = "Training Accuracy")
+        #plt.plot(accuracyListValid, label = "Validation Accuracy")
+        plt.plot(accuracyListTest, label = "Test Accuracy")
+        plt.ylabel("Accuracy")
+        plt.xlabel("Epoch")
+        plt.title(f"Accuracy with {K} Hidden Units")
+        plt.savefig(f'Lab2Part1AccuracyK{K}.png')
+        plt.legend()
+         
+    plot_loss()
+    plot_acc()
 
 def train(w1,w2,b1,b2,v1,v2, v_b1, v_b2,trainData,trainTarget,LR, gamma, validTarget, testTarget,epochs,validData, testData):
     Z_1 = 0
     Z_2 = 0
     a = 0
     result = 0
+    trainingAcc=[] 
+    testAcc=[]
+    validationAcc = []
+    trainingLoss=[]
+    testLoss=[]
+    validationLoss = []
     newtrain, newvalid, newtest = convertOneHot(trainTarget, validTarget, testTarget)
     
     def calcAcc (x,y):
@@ -153,16 +187,27 @@ def train(w1,w2,b1,b2,v1,v2, v_b1, v_b2,trainData,trainTarget,LR, gamma, validTa
         result_validation, Z1_valid,a_valid,Z2_valid = forward(w1,w2,b1,b2,validData)
         result_test, Z1_test,a_test,Z2_test = forward(w1,w2,b1,b2,testData)
         error = CE(Z_2,trainTarget)
+        trainingLoss.append(error)
         error_valid = CE(Z2_valid,validTarget)
+        validationLoss.append(error_valid)
         error_test = CE(Z2_test,testTarget)
+        testLoss.append(error_test)
         accuracy = calcAcc(result,newtrain)
+        trainingAcc.append(accuracy)
         accuracy_validation = calcAcc(result_validation, newvalid)
+        validationAcc.append(accuracy_validation)
         accuracy_test = calcAcc(result_test, newtest)
+        testAcc.append(accuracy_test)
         print("epoch:" ,i, "Training error:",error," Training accuracy:",accuracy)
         print("validation error:",error_valid, "validation accuracy", accuracy_validation)
         print("test error:",error_test, "test accuracy", accuracy_test)
         ############# backward propagation ####################
         w1,w2,b1,b2,v1,v2,v_b1,v_b2 = backprop(w1,w2,b1,b2,result,trainData,newtrain)
+        
+    #plot
+    plotLab(trainingLoss, validationLoss, testLoss, trainingAcc, validationAcc, testAcc, 2000)
+
+    
         
 #data - 10000 x (784)
 #target - 10,000 x 1
@@ -172,7 +217,9 @@ if __name__ == "__main__":
     trainData = np.reshape(trainData, (trainData.shape[0], -1))
     testData = np.reshape(testData, (testData.shape[0],-1))
     validData = np.reshape(validData, (validData.shape[0],-1))
-    w1,w2,b1,b2,v1,v2,v_b1,v_b2 = init()
+    
+    K = 2000
+    w1,w2,b1,b2,v1,v2,v_b1,v_b2 = init(K)
     
     LR=0.00005
     gamma = 0.9
