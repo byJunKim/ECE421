@@ -126,10 +126,12 @@ def train(w1,w2,b1,b2,v1,v2, v_b1, v_b2,trainData,trainTarget,LR, gamma, validTa
     def backprop(w1,w2,b1,b2,predic,x,y):
         delta_3 = np.subtract(predic,y) # 1 x 10 FOR 1 PT
         delta_2 = delta_3 @ w2.transpose() * gradRelu(Z_1) # 1 x 1000
-        print("delta 2 shape:" ,delta_2.shape)
         gradW_h = x.transpose() @ delta_2 # 784 x 1 FOR ONE, 784 x 1000
         gradW_o = a.transpose() @ delta_3 # 1000 x 10
         #Note: delta_2 = gradB_h delta_1 = grad_B_o
+        delta_2 = np.sum(delta_2,axis=0)
+        delta_3 = np.sum(delta_3,axis=0)
+        #print("delta 2 shape:" ,delta_2.shape)
         Vh_new = LR*gradW_h + gamma*v1 #momentum for w1
         Vo_new = LR*gradW_o + gamma*v2 #momentum for w2
         V_b1_new = LR*delta_2 + gamma*v_b1
@@ -138,9 +140,9 @@ def train(w1,w2,b1,b2,v1,v2, v_b1, v_b2,trainData,trainTarget,LR, gamma, validTa
         #updates
         w1_new = w1 - Vh_new
         w2_new = w2 - Vo_new
-        print("b1 shape original is", b1.shape)
+        #print("b1 shape original is", b1.shape)
         b1_new = b1 - V_b1_new
-        print("b1 shape new is", b1_new.shape)
+        #print("b1 shape new is", b1_new.shape)
         b2_new = b2 - V_b2_new
         
         return w1_new,w2_new,b1_new,b2_new,Vh_new,Vo_new,V_b1_new,V_b2_new
