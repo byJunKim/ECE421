@@ -50,17 +50,22 @@ def softmax(x):
     exp = np.exp(x)
     denom = np.sum(exp,axis=1).reshape(x.shape[0], 1)
     return(exp/denom)
-
+    
+    
+def safelog(x, minval=np.finfo(np.float).eps):
+    return np.log(x.clip(min=minval))
 
 def computeLayer(X, W, b):
     return(X @ W + b)
     
 #prediction = 10,000 x 10
 #target - 10,000x10 w/ one-hot
-def CE(target, prediction):
-    N = target.shape[0] #get number of rows
-    return np.sum((-1)*np.log(prediction) @ target.transpose())/N
-
+def CE(X,y):
+    n = y.shape[0]
+    p = softmax(X)
+    log_likelihood = -np.log(p[range(n),y])
+    loss = np.sum(log_likelihood) / n
+    return loss
 
 def gradCE(target, prediction):
     N = target.shape[0]
@@ -80,7 +85,20 @@ def init():
     
     return w1,w2,b1,b2,v1,v2,v_b1,v_b2
     
-   
+def delta_cross_entropy(X,y):
+    """
+    X is the output from fully connected layer (num_examples x num_classes)
+    y is labels (num_examples x 1)
+    	Note that y is not one-hot encoded vector. 
+    	It can be computed as y.argmax(axis=1) from one-hot encoded vectors of labels if required.
+    """
+    m = y.shape[0]
+    grad = softmax(X)
+    grad[range(m),y] -= 1
+    grad = grad/m
+    return grad
+
+
 def train(w1,w2,b1,b2,v1,v2, v_b1, v_b2,trainData,trainTarget,LR, gamma, validTarget, testTarget,epochs,validData, testData):
     Z_1 = 0
     Z_2 = 0
@@ -90,22 +108,23 @@ def train(w1,w2,b1,b2,v1,v2, v_b1, v_b2,trainData,trainTarget,LR, gamma, validTa
     
     def calcAcc (x,y):
         bestProbs = np.argmax(x,axis = 1)
-        return np.sum(bestProbs == np.argmax(y))/y.shape[0]
+        #print(bestProbs.shape,np.argmax(y,axis = 1).shape)
+        return np.sum(bestProbs == np.argmax(y,axis = 1))/y.shape[0]
     
     def forward(w1,w2,b1,b2,x):
+        #print("B1's shape is:", b1.shape)
         Z_1 = computeLayer(x,w1,b1) # result: 10,000 x 1000
         a = relu(Z_1)
         Z_2  = computeLayer(a,w2,b2) # result: 10,000 x 10
-        result = softmax(Z_2)
-        return result,Z_1,a,Z_2
+        return softmax(Z_2),Z_1,a,Z_2
     
     def gradRelu(x):
         x[x<=0] = 0
         x[x>0] = 1
         return x
-
+    
     def backprop(w1,w2,b1,b2,predic,x,y):
-        delta_3 = np.subtract(predic,y)/x.shape[0] # 1 x 10 FOR 1 PT
+        delta_3 = np.subtract(predic,y) # 1 x 10 FOR 1 PT
         delta_2 = delta_3 @ w2.transpose() * gradRelu(Z_1) # 1 x 1000
         print("delta 2 shape:" ,delta_2.shape)
         gradW_h = x.transpose() @ delta_2 # 784 x 1 FOR ONE, 784 x 1000
@@ -119,16 +138,27 @@ def train(w1,w2,b1,b2,v1,v2, v_b1, v_b2,trainData,trainTarget,LR, gamma, validTa
         #updates
         w1_new = w1 - Vh_new
         w2_new = w2 - Vo_new
+        print("b1 shape original is", b1.shape)
         b1_new = b1 - V_b1_new
+        print("b1 shape new is", b1_new.shape)
         b2_new = b2 - V_b2_new
         
         return w1_new,w2_new,b1_new,b2_new,Vh_new,Vo_new,V_b1_new,V_b2_new
     
     for i in range(epochs):
+        #print("B1's shape is:", b1.shape)
         result,Z_1,a,Z_2 = forward(w1,w2,b1,b2,trainData)
-        error = CE(result, newtrain)
-        accuracy = calcAcc(result,trainTarget)
-        print("epoch:" ,i, "Training error:",error,"accuracy:",accuracy)
+        result_validation, Z1_valid,a_valid,Z2_valid = forward(w1,w2,b1,b2,validData)
+        result_test, Z1_test,a_test,Z2_test = forward(w1,w2,b1,b2,testData)
+        error = CE(Z_2,trainTarget)
+        error_valid = CE(Z2_valid,validTarget)
+        error_test = CE(Z2_test,testTarget)
+        accuracy = calcAcc(result,newtrain)
+        accuracy_validation = calcAcc(result_validation, newvalid)
+        accuracy_test = calcAcc(result_test, newtest)
+        print("epoch:" ,i, "Training error:",error," Training accuracy:",accuracy)
+        print("validation error:",error_valid, "validation accuracy", accuracy_validation)
+        print("test error:",error_test, "test accuracy", accuracy_test)
         ############# backward propagation ####################
         w1,w2,b1,b2,v1,v2,v_b1,v_b2 = backprop(w1,w2,b1,b2,result,trainData,newtrain)
         
@@ -138,11 +168,13 @@ if __name__ == "__main__":
 
     trainData, validData, testData, trainTarget, validTarget, testTarget = loadData();
     trainData = np.reshape(trainData, (trainData.shape[0], -1))
+    testData = np.reshape(testData, (testData.shape[0],-1))
+    validData = np.reshape(validData, (validData.shape[0],-1))
     w1,w2,b1,b2,v1,v2,v_b1,v_b2 = init()
     
-    LR=0.005
+    LR=0.00005
     gamma = 0.9
     epochs = 200
-    train(w1,w2,b1,b2,v1,v2,v_b1,v_b2,trainData,trainTarget, LR, gamma, validTarget, testTarget, epochs,validTarget, testTarget)
+    train(w1,w2,b1,b2,v1,v2,v_b1,v_b2,trainData,trainTarget, LR, gamma, validTarget, testTarget, epochs, validData, testData)
     
     
