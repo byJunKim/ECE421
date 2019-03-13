@@ -48,7 +48,7 @@ def relu(x):
 
 def softmax(x):
     exp = np.exp(x)
-    denom = np.sum(exp)
+    denom = np.sum(exp,axis=1).reshape(x.shape[0], 1)
     return(exp/denom)
 
 
@@ -81,7 +81,7 @@ def init():
     return w1,w2,b1,b2,v1,v2,v_b1,v_b2
     
    
-def train(w1,w2,b1,b2,v1,v2, v_b1, v_b2,trainData,trainTarget,LR, gamma, validTarget, testTarget,epochs):
+def train(w1,w2,b1,b2,v1,v2, v_b1, v_b2,trainData,trainTarget,LR, gamma, validTarget, testTarget,epochs,validData, testData):
     Z_1 = 0
     Z_2 = 0
     a = 0
@@ -98,12 +98,17 @@ def train(w1,w2,b1,b2,v1,v2, v_b1, v_b2,trainData,trainTarget,LR, gamma, validTa
         Z_2  = computeLayer(a,w2,b2) # result: 10,000 x 10
         result = softmax(Z_2)
         return result,Z_1,a,Z_2
+    
+    def gradRelu(x):
+        x[x<=0] = 0
+        x[x>0] = 1
+        return x
 
-    def backprop(w1,w2,b1,b2,predic,y):
-        delta_3 = np.subtract(predic,y)/trainData.shape[0] # 1 x 10 FOR 1 PT
-        #print(np.shape(delta_3))
-        delta_2 = delta_3 @ w2.transpose() # 1 x 1000
-        gradW_h = trainData.transpose() @ delta_2 # 784 x 1 FOR ONE, 784 x 1000
+    def backprop(w1,w2,b1,b2,predic,x,y):
+        delta_3 = np.subtract(predic,y)/x.shape[0] # 1 x 10 FOR 1 PT
+        delta_2 = delta_3 @ w2.transpose() * gradRelu(Z_1) # 1 x 1000
+        print("delta 2 shape:" ,delta_2.shape)
+        gradW_h = x.transpose() @ delta_2 # 784 x 1 FOR ONE, 784 x 1000
         gradW_o = a.transpose() @ delta_3 # 1000 x 10
         #Note: delta_2 = gradB_h delta_1 = grad_B_o
         Vh_new = LR*gradW_h + gamma*v1 #momentum for w1
@@ -121,14 +126,11 @@ def train(w1,w2,b1,b2,v1,v2, v_b1, v_b2,trainData,trainTarget,LR, gamma, validTa
     
     for i in range(epochs):
         result,Z_1,a,Z_2 = forward(w1,w2,b1,b2,trainData)
-        #print("1: ", result,"@@", Z_1, "@@", a,"@@", Z_2)
-        #print(result)
         error = CE(result, newtrain)
         accuracy = calcAcc(result,trainTarget)
-        print("epoch:" ,i, "Average CE-error:",error,"accuracy:",accuracy)
+        print("epoch:" ,i, "Training error:",error,"accuracy:",accuracy)
         ############# backward propagation ####################
-        w1,w2,b1,b2,v1,v2,v_b1,v_b2 = backprop(w1,w2,b1,b2,result,newtrain)
-        print("Average weight", np.sum(w1)/w1.shape[0])
+        w1,w2,b1,b2,v1,v2,v_b1,v_b2 = backprop(w1,w2,b1,b2,result,trainData,newtrain)
         
 #data - 10000 x (784)
 #target - 10,000 x 1
@@ -141,6 +143,6 @@ if __name__ == "__main__":
     LR=0.005
     gamma = 0.9
     epochs = 200
-    train(w1,w2,b1,b2,v1,v2,v_b1,v_b2,trainData,trainTarget, LR, gamma, validTarget, testTarget, epochs)
+    train(w1,w2,b1,b2,v1,v2,v_b1,v_b2,trainData,trainTarget, LR, gamma, validTarget, testTarget, epochs,validTarget, testTarget)
     
     
