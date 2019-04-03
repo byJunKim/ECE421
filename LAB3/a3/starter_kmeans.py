@@ -4,125 +4,59 @@ import matplotlib.pyplot as plt
 import helper as hlp
 from collections import Counter, defaultdict
 
-def analyze_data(classifications):
-    
+def analyze_data(classifications): # get unique labels (cluster) and # of pts in each label 
+
     print(np.unique(classifications,return_counts=True))
-        
-def ploterror(errorsList):
-    
+
+def plot_error(errorsList):
+
     def plot_loss():
         plt.figure(2)
         plt.plot(errorsList, label = "Error")
         plt.xlabel("Epoch")
-        plt.ylim((-1,1))
+        plt.ylim((0,1))
         plt.title(f"Error against Iterations")
         plt.legend()
-        
+
     plot_loss()
 
-        
-        
 def plot_data(dataset, clusters, classes):
-    '''
-
-    Draws a scatterplot of the clusterized data
-    Args:
-        dataset: Dataset to be plotted
-        clusters: Clusters centers
-        classes: Clases of each point in the dataset
-
-    '''
     k = len(clusters)
     plt.figure(1)
     plt.scatter(dataset[:, 0], dataset[:, 1], c=classes, cmap=plt.get_cmap('Set1'), s=25, alpha=0.6)
-    plt.scatter(clusters[:, 0], clusters[:, 1], marker='*', c=range(k), cmap=plt.get_cmap('Set1'), s=500, linewidths=3)
+    plt.scatter(clusters[:, 0], clusters[:, 1], marker='o', c=range(k), cmap=plt.get_cmap('Set1'), s=150, linewidths=1)
     plt.title('K-Means Clustering')
     plt.xlabel('X1')
     plt.ylabel('X2')
     plt.grid()
-    
-def matrix_norm_column(x):
-    '''
-    Calculates the norm of each vector in a matrix, returning a column matrix
-    '''
-    x_sq = x*x
-    norm = tf.reduce_sum(x_sq, 1, keep_dims=True)
-    return norm
 
-def square_distance(x, y):
-    '''
-    Returns pairwise squared distance between two matrices:
-    For points xi belonging to X and yj belonging to Y, we have:
-        d(xi,yj)^2 = ||xi - yj||^2 = ||xi||^2 + ||xj||^2 - 2 * (yj . xi)
-    Expanding to the entire matrix, we get:
-        d(X, Y)^2 = (||X||^2 .+ ||Y||^2) - 2*dot(Y,X')
-            Where .+ is the outer (element-wise) sum
-    '''
+def norm(x):
+    return tf.reduce_sum(x*x, 1, keep_dims=True)
 
-    x_norm = matrix_norm_column(x)
-    y_norm = matrix_norm_column(y)
+def square_distance(x, y): # return pairwise square dist
+
     dot_prod = tf.matmul(y, tf.transpose(x))
+    sum = tf.transpose(norm(x)) + norm(y)
 
-    outer_sum = tf.transpose(x_norm) + y_norm
-
-    return outer_sum - 2 * dot_prod
+    return sum - (2 * dot_prod)
 
 def loss_function(x,mu):
-    dists = square_distance(mu, x) #||x - mu||
-    min_dist = tf.reduce_min(dists, 1) # min ||x - mu||
-    cost = tf.reduce_mean(min_dist) # sum(min ||x - mu||)
-    return cost
+    return tf.reduce_mean(tf.reduce_min(square_distance(mu, x), 1))
 
-
-
-def assign_data(dataset, clusters):
-    '''
-
-    Calculates the cluster assignments given a dataset and cluster centers
-    Args:
-        dataset: Set of points
-        clusters: Centers of clusters
-
-    Returns:
-        min_dist: List of point classes in the same order they appear in the dataset
-
-    '''
-    dists = square_distance(clusters, dataset)  # ||x - mu||
-    min_dist = tf.argmin(dists, 1)  # argmin ||x - mu||
+def get_clusters(dataset, clusters):
+    min_dist = tf.argmin(square_distance(clusters, dataset), 1)
+    #print(min_dist)
     return min_dist
 
-
-
-
-def k_means(data, k, EXP=1e-6):
-    '''
-
-    Performs K-Means clusterization on a dataset
-    Args:
-        data: Set of points
-        k: Number of clusters to use
-        EXP: Convergence criteria (minimum difference between iteration cost before stopping
-
-    Returns:
-        clusters: Cluster centers
-        assignments: Class assignment of each point
-        costs: Cost history throughout training
-
-    '''
-    data_len = len(data)
-    assert (data_len > 0), "Dataset is empty"
-    assert (k < data_len), "Invalid value of K for size of dataset"
+def k_means(data, k, iterations):
 
     dim = len(data[0])
-
-    # Input data and Clusters
     dataset = tf.placeholder(tf.float32, [None, dim], name="Data")
     mu = tf.Variable(tf.random_normal([k, dim]), name="Centroids")
 
     # Training specification
     cost = loss_function(mu, dataset)
-    iter_var = tf.Variable(0)
-    optimizer = tf.train.AdamOptimizer(0.1, beta1=0.9, beta2=0.99, epsilon=1e-5).minimize(cost, global_step=iter_var)
+    optimizer = tf.train.AdamOptimizer(0.1, beta1=0.9, beta2=0.99, epsilon=1e-5).minimize(cost)
 
     sess = tf.Session()
     sess.run(tf.initialize_all_variables())
@@ -130,38 +64,55 @@ def k_means(data, k, EXP=1e-6):
     with sess.as_default():
         costs = []
         last_cost = float('inf')
-        for i in range(1000):
+       # min_valid_cost = 100000
+        for i in range(iterations):
             iter_cost = sess.run([cost, optimizer], feed_dict={dataset: data})[0]
-
+            #if valid_data.any():
+                #valid_cost = sess.run([cost, optimizer], feed_dict={dataset: valid_data})[0]
+                #min_valid_cost = min(min_valid_cost, valid_cost)
             costs.append(iter_cost)
 
             print ("Iteration:", i, "Loss:", iter_cost, "\n")
 
             if abs(iter_cost - last_cost) == 0 :
-                print ("Converged!")
+               # if valid_data.any():
+                   # print ("Converged! Lowest validation loss is:", min_valid_cost, "ending validation cost is:", valid_cost)
                 clusters = mu.eval()
                 break
             else:
                 last_cost = iter_cost
 
-        assignments = sess.run(assign_data(dataset, mu), feed_dict={dataset: data})
+        assignments = sess.run(get_clusters(dataset, mu), feed_dict={dataset: data})
 
     return clusters, assignments, costs
 
 
-if __name__ == '__main__':
+def a3part1(data, K, is_valid, iterations):
+        # For Validation set
+    if is_valid:
+      valid_batch = int(data.shape[0] / 3.0)
+      np.random.seed(45689)
+      rnd_idx = np.arange(data.shape[0])
+      np.random.shuffle(rnd_idx)
+      val_data = data[rnd_idx[:valid_batch]]
+      data = data[rnd_idx[valid_batch:]]
+
+    #print(val_data.shape)
+
+    clusters, assignments, costs = k_means(data, K, iterations)
+    print("clusters shape", clusters.shape,"assignments shape", assignments.shape)
+    plot_data(data, clusters, assignments)
+    analyze_data(assignments)
+    plot_error(costs)
     
+if __name__ == '__main__':
+
     # Loading data
     data = np.load('data2D.npy')
-    
-    K = 2
+
+    K = 3
     is_valid = False
     iterations = 10000
     
-    
-    clusters, assignments, costs = k_means(data, K, iterations)
-    print("clusters shape", clusters.shape,"assignments shape", assignments.shape)
-    print(assignments)
-    plot_data(data, clusters, assignments)
-    analyze_data(assignments)
-    #ploterror(costs)
+    #run part one of assignment 3
+    a3part1(data, K, is_valid, iterations)
